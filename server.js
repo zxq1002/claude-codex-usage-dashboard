@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { readClaudeUsage: readClaudeSources, readJson } = require('./lib/claude-usage');
 
 const HOST = process.env.HOST || '0.0.0.0';
 
@@ -24,22 +25,11 @@ const CLAUDE_CACHE = process.env.CLAUDE_USAGE_CACHE
   || path.join(os.homedir(), '.claude', 'usage-cache.json');
 const CODEX_SESSIONS = process.env.CODEX_SESSIONS_DIR
   || path.join(os.homedir(), '.codex', 'sessions');
-
-function readJson(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch (error) {
-    return null;
-  }
-}
-
-function normalizeClaudeWindow(windowData) {
-  if (!windowData || typeof windowData.used_percentage !== 'number') return null;
-  return {
-    used: windowData.used_percentage,
-    resetAt: windowData.resets_at ? windowData.resets_at * 1000 : null,
-  };
-}
+const localConfig = readJson(path.join(__dirname, 'config.json')) || {};
+// 显式设置为空字符串可临时关闭 HUD；本地配置使终端及自启动采用相同数据源。
+const CLAUDE_HUD_USAGE_PATH = Object.hasOwn(process.env, 'CLAUDE_HUD_USAGE_PATH')
+  ? process.env.CLAUDE_HUD_USAGE_PATH
+  : localConfig.claudeHudUsagePath;
 
 function normalizeCodexWindow(windowData) {
   if (!windowData || typeof windowData.used_percent !== 'number') return null;
@@ -50,16 +40,7 @@ function normalizeCodexWindow(windowData) {
 }
 
 function readClaudeUsage() {
-  const data = readJson(CLAUDE_CACHE);
-  if (!data || !data.rate_limits) {
-    return { fetchedAt: null, five: null, seven: null };
-  }
-
-  return {
-    fetchedAt: data.fetchedAt || null,
-    five: normalizeClaudeWindow(data.rate_limits.five_hour),
-    seven: normalizeClaudeWindow(data.rate_limits.seven_day),
-  };
+  return readClaudeSources({ cachePath: CLAUDE_CACHE, hudPath: CLAUDE_HUD_USAGE_PATH });
 }
 
 function getCodexDayDirectory(date) {
@@ -788,10 +769,12 @@ const server = http.createServer((request, response) => {
   response.end(pageHtml());
 });
 
-server.listen(PORT, HOST, () => {
+if (require.main === module) server.listen(PORT, HOST, () => {
   const visibleHost = HOST === '0.0.0.0' ? getLanAddress() : HOST;
   console.log('Claude / Codex usage dashboard');
   console.log('Local:  http://localhost:' + PORT);
   console.log('Device: http://' + visibleHost + ':' + PORT);
   console.log('KOBO:   http://' + visibleHost + ':' + PORT + '/k');
 });
+
+module.exports = { server, koboPageHtml, readClaudeUsage, getCodexUsage };
