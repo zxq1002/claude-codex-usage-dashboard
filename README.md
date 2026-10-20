@@ -12,7 +12,7 @@ The server runs on your own Windows or macOS machine, reads local usage data, an
 
 - Shows Claude Code and Codex usage for the 5-hour and weekly windows.
 - Can display either used percentage or remaining percentage.
-- Reads Claude Code usage through a local `statusLine` cache.
+- Reads Claude Code usage through a local `statusLine` cache or an optional native Claude HUD snapshot.
 - Reads Codex usage from the newest local `~/.codex/sessions` `rate_limits` snapshot.
 - Works on a phone or tablet connected to the same Wi-Fi network.
 - Tap the dashboard to refresh and request fullscreen mode.
@@ -25,7 +25,7 @@ The server runs on your own Windows or macOS machine, reads local usage data, an
 
 Usage numbers only update after you actually use Claude Code or Codex.
 
-Claude Code usage comes from `statusLine`, so opening Claude in the web app or desktop app will not update this dashboard. Codex usage is read from local Codex session files, so it updates only after Codex writes new session data.
+Claude usage comes from Claude Code's `statusLine` payload, either through the legacy cache or Claude HUD's native export. Opening Claude in the web app or desktop app will not directly update this dashboard. Snapshot timestamps indicate local writes, not a new account quota query. Codex usage is read from local Codex session files, so it updates only after Codex writes new session data.
 
 This project is not affiliated with Anthropic or OpenAI. It does not include official logos. Make sure your own use of third-party names, trademarks, and local tool output formats follows the relevant terms.
 
@@ -133,6 +133,22 @@ You can also double-click `start-dashboard.command` in Finder after making it ex
 
 This step lets the dashboard show real Claude Code usage.
 
+### Claude HUD 独立快照（推荐）
+
+如果已安装 Claude HUD，优先使用其 `display.externalUsageWritePath` 导出功能，保留原有 `statusLine.command`。先执行 `npm run test:hud` 核实本机实际安装的插件；不自动升级插件，不修改插件源码。
+
+在 HUD 实际配置的 `display` 对象中合并 `externalUsageWritePath`，并在本项目被 Git 忽略的 `config.json` 中合并 `claudeHudUsagePath`，两者指向同一个独立 JSON 文件。必须使用**展开后的绝对路径**及已有父目录；部分已安装版本不会展开 `~`。不要指向 Dashboard 的 `usage-cache.json`，不要用配置片段覆盖整个配置。
+
+也可以通过环境变量临时指定：
+
+```bash
+CLAUDE_HUD_USAGE_PATH="$HOME/.claude/hud-usage-snapshot.json" node server.js
+```
+
+原有缓存仍然保留。两份快照都有效时按数据时间选择，同时间优先 HUD；缺失或损坏的 HUD 快照回退旧缓存。新快照缺失的窗口显示 `--`，不混入旧窗口。完整配置、边界规则、测试及回滚见 [本地兼容说明](LOCAL_COMPATIBILITY.md)。采用此方式时，**不运行下面的状态栏安装脚本**。
+
+### 原有缓存采集方式
+
 ### Windows
 
 ```powershell
@@ -192,6 +208,18 @@ macOS example:
 ```
 
 Then enable fanout mode.
+
+Fanout is a compatibility fallback. The installer preserves a directly configured display command, refuses known recursive wrappers, backs up settings before any write, and leaves unrelated fields intact. Preview the final commands first:
+
+```bash
+node setup-statusline.js --fanout --plan-only
+```
+
+The extra command's successful, nonempty output is returned unchanged; failures fall back to the dashboard line. Both subprocesses share a 2-second execution budget in parallel, with 256 KiB of output allowed per subprocess. Backup failures abort installation. Repeated installation does not add wrappers. Restore only the managed fields using the backup directory printed by the installer:
+
+```bash
+node setup-statusline.js --restore /absolute/path/to/statusline-backup
+```
 
 ### Windows
 
@@ -256,6 +284,7 @@ The macOS LaunchAgent writes logs to:
 | `KOBO_REFRESH_SECONDS` | `60` | Refresh interval for `/kobo`; minimum rendered value is 15 seconds |
 | `CODEX_LOOKBACK_DAYS` | `14` | How many days of Codex sessions to scan |
 | `CLAUDE_USAGE_CACHE` | `~/.claude/usage-cache.json` | Claude usage cache path |
+| `CLAUDE_HUD_USAGE_PATH` | unset | Absolute HUD snapshot path; overrides `config.json`'s `claudeHudUsagePath`. Set to an empty string to disable HUD input temporarily |
 | `CODEX_SESSIONS_DIR` | `~/.codex/sessions` | Codex sessions path |
 | `EXTRA_STATUSLINE_COMMAND` | empty | Extra command for fanout mode |
 
