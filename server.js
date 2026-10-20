@@ -276,7 +276,7 @@ function koboPageHtml(requestUrl) {
 <meta charset="utf-8">
 <meta http-equiv="refresh" content="${Math.max(15, Math.round(KOBO_REFRESH_SECONDS))}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Usage - KOBO</title>
+<title>AI Usage - E-ink</title>
 <style>
 html, body {
   margin: 0;
@@ -284,48 +284,61 @@ html, body {
   background: #fff;
   color: #000;
   font-family: Georgia, "Times New Roman", serif;
+  -webkit-text-size-adjust: 100%;
 }
 body {
-  padding: 18px 16px;
+  padding: 10px;
+}
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
 }
 .top {
-  border-bottom: 3px solid #000;
-  margin-bottom: 18px;
-  padding-bottom: 10px;
+  border-bottom: 2px solid #000;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
 }
 h1 {
-  font-size: 28px;
-  line-height: 1;
-  margin: 0 0 8px 0;
+  font-size: 22px;
+  line-height: 1.1;
+  margin: 0 0 4px 0;
   letter-spacing: 0;
 }
 .sub {
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.3;
   margin: 0;
 }
 .card {
   border: 2px solid #000;
-  margin: 0 0 18px 0;
-  padding: 12px 10px 8px 10px;
+  margin: 0 0 8px 0;
+  padding: 8px 10px 4px;
   page-break-inside: avoid;
 }
 .head {
+  display: table;
+  width: 100%;
   border-bottom: 1px solid #000;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   padding-bottom: 6px;
 }
 h2 {
-  font-size: 28px;
-  line-height: 1;
-  margin: 0 0 5px 0;
+  display: table-cell;
+  vertical-align: baseline;
+  font-size: 24px;
+  line-height: 1.1;
+  margin: 0;
   text-transform: uppercase;
 }
 p {
   margin: 0;
 }
 .head p {
-  font-size: 13px;
+  display: table-cell;
+  vertical-align: baseline;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: right;
 }
 table {
   width: 100%;
@@ -333,24 +346,26 @@ table {
 }
 th, td {
   padding: 4px 0;
+  line-height: 1.1;
   vertical-align: baseline;
 }
 th {
-  width: 36%;
-  font-size: 17px;
+  width: 29%;
+  font-size: 16px;
   text-align: left;
   text-transform: uppercase;
 }
 .num {
   width: 30%;
-  font-size: 36px;
+  font-size: 40px;
   font-weight: bold;
   text-align: right;
 }
 .reset {
-  width: 28%;
-  font-size: 13px;
+  width: 35%;
+  font-size: 12px;
   text-align: right;
+  white-space: nowrap;
 }
 .mark {
   width: 6%;
@@ -359,16 +374,15 @@ th {
   text-align: right;
 }
 .barrow td {
-  padding: 0 0 12px 0;
+  padding: 0 0 8px 0;
 }
 .bar {
-  width: 100%;
-  height: 14px;
+  height: 10px;
   border: 1px solid #000;
   background: #fff;
 }
 .fill {
-  height: 14px;
+  height: 10px;
   background: #000;
 }
 .alert .num,
@@ -377,17 +391,24 @@ th {
 }
 .footer {
   border-top: 1px solid #000;
-  padding-top: 8px;
-  font-size: 12px;
+  padding-top: 4px;
+  font-size: 11px;
   line-height: 1.25;
+}
+/* 为 Paperwhite 2 的浏览器工具栏预留空间，不依赖 vh 或脚本缩放。 */
+@media (max-width: 400px), (max-height: 540px) {
+  body { padding: 6px; }
+  h1 { font-size: 18px; }
+  h2 { font-size: 20px; }
+  .card { padding: 6px 8px 2px; }
+  .num { font-size: 32px; }
+  th { font-size: 14px; }
+  .mark { font-size: 24px; }
+  .barrow td { padding-bottom: 6px; }
 }
 @media (min-width: 760px) {
   body {
-    padding: 24px;
-  }
-  .wrap {
-    width: 720px;
-    margin: 0 auto;
+    padding: 12px;
   }
 }
 </style>
@@ -396,14 +417,12 @@ th {
 <div class="wrap">
   <div class="top">
     <h1>AI Usage</h1>
-    <p class="sub">KOBO / e-ink mode - showing ${formatModeLabel(mode)} - refresh ${Math.max(15, Math.round(KOBO_REFRESH_SECONDS))}s</p>
+    <p class="sub">${formatModeLabel(mode)} - refresh ${Math.max(15, Math.round(KOBO_REFRESH_SECONDS))}s - /k remaining, /u used</p>
   </div>
   ${koboCard('Claude', claude, mode)}
   ${koboCard('Codex', codex, mode)}
   <div class="footer">
-    <p>Generated ${generatedAt}. Short URLs: <strong>/k</strong> for remaining, <strong>/u</strong> for used.</p>
-    <p>Long URLs also work: <strong>/kobo?mode=remaining</strong> and <strong>/kobo?mode=used</strong>.</p>
-    <p>Marked <strong>!</strong> means used percentage is at or above ${Math.round(ALERT_PERCENT)}%.</p>
+    <p>Generated ${generatedAt}. <strong>!</strong> = used at or above ${Math.round(ALERT_PERCENT)}%.</p>
   </div>
 </div>
 </body>

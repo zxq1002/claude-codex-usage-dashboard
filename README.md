@@ -68,7 +68,7 @@ Device: http://192.168.1.23:8787
 
 Open `http://localhost:8787` on the computer running the server. To use a phone or tablet, connect it to the same Wi-Fi network and open the `Device` URL.
 
-## KOBO / E-ink Mode
+## Kindle / KOBO / E-ink Mode
 
 Many KOBO browsers are old and do not reliably support modern JavaScript features such as `fetch`, `async/await`, wake lock, or modern CSS. If the normal dashboard loads but the numbers never appear, use the KOBO page instead:
 
@@ -95,6 +95,8 @@ http://YOUR-LAN-IP:8787/kobo
 `/eink`, `/e`, `/r`, `/kr`, and `/ku` are also available as aliases. In short: `/k` = remaining, `/u` = used.
 
 The KOBO page is rendered on the server, so the numbers are already inside the HTML. It does not require JavaScript. It refreshes with a simple `<meta refresh>` tag.
+
+The e-ink page uses a compact portrait layout for Kindle Paperwhite 2 and other small e-readers. Both cards show the 5-hour and weekly percentages, reset times, and update times together, with less space used by headings and help text. Smaller browser viewports use a further reduced layout to leave room for browser toolbars. Use the browser's default zoom; enlarging the page can require scrolling.
 
 Display remaining percentage:
 
