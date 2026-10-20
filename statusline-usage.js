@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { atomicWriteJson } = require('./lib/private-json');
+const { normalizeSnapshot } = require('./lib/claude-usage');
 
 const CACHE_PATH = process.env.CLAUDE_USAGE_CACHE
   || path.join(os.homedir(), '.claude', 'usage-cache.json');
@@ -20,13 +22,11 @@ process.stdin.on('end', () => {
   } catch (error) {}
 
   const rateLimits = session.rate_limits || null;
-  if (rateLimits) {
+  const snapshot = { fetchedAt: Date.now(), rate_limits: rateLimits };
+  if (normalizeSnapshot(snapshot, false)) {
     try {
       fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true });
-      fs.writeFileSync(CACHE_PATH, JSON.stringify({
-        fetchedAt: Date.now(),
-        rate_limits: rateLimits,
-      }));
+      atomicWriteJson(CACHE_PATH, snapshot);
     } catch (error) {}
   }
 

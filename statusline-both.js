@@ -1,52 +1,28 @@
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
-
-const OUR_STATUSLINE = path.join(__dirname, 'statusline-usage.js');
-const CONFIG_PATH = path.join(__dirname, 'config.json');
-
-function loadConfig() {
-  try {
-    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) || {};
-  } catch (error) {
-    return {};
-  }
-}
-
-function runCommand(command, args, input, options) {
-  try {
-    return spawnSync(command, args, {
-      input,
-      encoding: 'utf8',
-      timeout: 15000,
-      windowsHide: true,
-      ...options,
-    });
-  } catch (error) {
-    return null;
-  }
-}
+const { readJson } = require('./lib/claude-usage');
+const { fanout, OUTPUT_LIMIT } = require('./lib/fanout');
 
 let input = '';
+let oversized = false;
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => {
+  if (oversized) return;
   input += chunk;
-});
-
-process.stdin.on('end', () => {
-  const config = loadConfig();
-  const extraCommand = process.env.EXTRA_STATUSLINE_COMMAND
-    || config.extraStatuslineCommand
-    || '';
-
-  const own = runCommand(process.execPath, [OUR_STATUSLINE], input);
-
-  if (extraCommand.trim()) {
-    runCommand(extraCommand, [], input, { shell: true });
+  if (Buffer.byteLength(input, 'utf8') > OUTPUT_LIMIT) {
+    oversized = true;
+    input = '';
   }
-
-  const output = own && own.stdout ? own.stdout.trim() : 'Claude';
-  process.stdout.write(output);
+});
+process.stdin.on('error', () => { oversized = true; });
+process.stdin.on('end', async () => {
+  if (oversized) return process.stdout.write('Claude');
+  const config = readJson(path.join(__dirname, 'config.json')) || {};
+  const extraCommand = process.env.EXTRA_STATUSLINE_COMMAND || config.extraStatuslineCommand || '';
+  try {
+    process.stdout.write(await fanout({ input, ownPath: path.join(__dirname, 'statusline-usage.js'), extraCommand }));
+  } catch {
+    process.stdout.write('Claude');
+  }
 });
